@@ -1,10 +1,19 @@
 name: Terraform
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Terraform action to run"
+        required: true
+        default: "plan"
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
 env:
   TF_VERSION: "1.14.5"
@@ -12,7 +21,7 @@ env:
 
 jobs:
   terraform:
-    name: Terraform Plan & Apply
+    name: Terraform ${{ github.event.inputs.action || 'plan' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -85,5 +94,9 @@ jobs:
         run: exit 1
 
       - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
         run: terraform apply -auto-approve tfplan
+
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
